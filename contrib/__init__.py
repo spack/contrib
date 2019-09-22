@@ -6,6 +6,7 @@
 from __future__ import division
 
 import argparse
+import collections
 import contextlib
 import json
 import sys
@@ -351,7 +352,7 @@ def build_index(history, stats):
         blame_pool = multiprocessing.Pool(blame_jobs)
 
     try:
-        _build_index(history, stats)
+        return _build_index(history, stats)
     finally:
         blame_pool.terminate()
         blame_pool = None
@@ -372,7 +373,8 @@ def plot(filename, title, counts, dates, top_n=20):
     contributors.  N defaults to 20.
     """
     # Sort data ascending by date.
-    counts, dates = zip(*sorted(zip(counts, dates), key=lambda c, d: d))
+    sorted_list = sorted(zip(dates, counts))
+    dates, counts = zip(*sorted_list)
 
     # Get sorted lists of top contributors (by line) from the last commit.
     contributors = sorted(counts[-1].keys(), key=lambda c: counts[-1][c])
@@ -418,6 +420,32 @@ def plot(filename, title, counts, dates, top_n=20):
 
     plt.tight_layout()
     plt.savefig(filename)
+
+
+def update_org_map(filename):
+    with open(filename) as f:
+        authors_to_orgs = json.load(f)
+
+    lines = git("log", "--no-merges", "--pretty=format:%aN|%ae")
+
+    new_authors = 0
+    for line in lines:
+        name, email = line.split("|")
+        if name not in authors_to_orgs or authors_to_orgs[name] == "unknown":
+            authors_to_orgs[name] = "unknown <%s>" % email
+            new_authors += 1
+
+    if new_authors:
+        temp_name = "%s.tmp.%d" % (filename, os.getpid())
+        with open(temp_name, "w") as temp:
+            sorted_dict = collections.OrderedDict(sorted(authors_to_orgs.items()))
+            json.dump(sorted_dict, temp, indent=2, separators=(",", ": "))
+            temp.write("\n")  # add back trailing newline
+        os.rename(temp_name, filename)
+
+        print("Added %d new authors to '%s'" % (new_authors, filename))
+    else:
+        print("No new authors.")
 
 
 def create_parser():
@@ -467,28 +495,44 @@ def create_parser():
         default=multiprocessing.cpu_count(),
         help="number of concurrent blame jobs (default #cpus)",
     )
+    parser.add_argument(
+        "-u",
+        "--update-org-map",
+        action="store_true",
+        default=False,
+        help="update or create an author-to-organization mapping",
+    )
     return parser
 
 
 def main():
+    global verbose
+    global blame_jobs
+    global git_repo_dir
+
     parser = create_parser()
     args = parser.parse_args()
-
-    global verbose
-    verbose = args.verbose
 
     # read config out of git root
     if not os.path.exists(args.file):
         die("no such file: '%s'" % args.file)
 
     config = ContribConfig(args.file)
+    verbose = args.verbose
+    blame_jobs = args.jobs
+    git_repo_dir = config.repo
 
     if not os.path.isdir(os.path.join(config.repo, ".git")):
         die("not a git repo: '%s'" % config.repo)
 
-    global git_repo_dir
-    git_repo_dir = config.repo
+    # update mapping from authors to orgs
+    if args.update_org_map:
+        if not config.orgmap:
+            die("%s doesn't specify an orgmap" % args.file)
+        update_org_map(config.orgmap_file)
+        return
 
+    # get the list of commits we're going to plot
     if args.samples == 0:
         history = list(linear_history())
     else:
@@ -502,12 +546,12 @@ def main():
         return
 
     # now do plots by author and by organization
-    for part in config["parts"]:
+    for part in config.parts:
         for by in ["author", "org"]:
             cur_index = index
             if by == "org":
                 cur_index = {
-                    name: OrgStats(s, config.authors) for name, s in index.items()
+                    name: OrgStats(s, config.orgmap) for name, s in index.items()
                 }
 
             counts = [cur_index[part][commit] for commit, date in history]
