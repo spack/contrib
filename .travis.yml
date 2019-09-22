@@ -1,0 +1,48 @@
+branches:
+  only:
+    - master
+
+jobs:
+  fast_finish: true
+  include:
+    - stage: "style check"
+      python: '3.7'
+      os: linux
+      language: python
+      script:
+        - black --diff --check .
+        - flake8
+    - stage: "unit tests"
+      python: '2.7'
+      os: linux
+      language: python
+    - python: '3.5'
+      os: linux
+      language: python
+    - python: '3.6'
+      os: linux
+      language: python
+    - python: '3.7'
+      os: linux
+      language: python
+
+install:
+  - pip install --upgrade -r requirements.txt
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then
+        pip install --upgrade black;
+        pip install --upgrade flake8;
+        pip install --upgrade pep8-naming;
+    fi
+  - python setup.py install
+
+script:
+  - PYTHONPATH=. coverage run $(which pytest)
+
+after_success:
+  - codecov --env PYTHON_VERSION --required --flags "${TEST_SUITE}${TRAVIS_OS_NAME}"
+
+notifications:
+  email:
+    recipients: bhatele@llnl.gov
+    on_success: change
+    on_failure: always

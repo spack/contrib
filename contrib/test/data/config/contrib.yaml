@@ -1,0 +1,15 @@
+#
+# Sample contrib config file.
+#
+contrib:
+  repo:   ./spack
+  orgmap: ./author-to-org.json
+  parts:
+    packages:
+      - ^pkg_regex_1$
+      - ^pkg_regex_2$
+      - ^pkg_regex_3$
+    core:
+      - ^core_regex_1$
+      - ^core_regex_2$
+      - ^core_regex_3$

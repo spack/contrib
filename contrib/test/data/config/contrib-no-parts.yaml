@@ -1,0 +1,5 @@
+#
+# Sample contrib config file with no orgmap or parts
+#
+contrib:
+  repo:   ./spack
