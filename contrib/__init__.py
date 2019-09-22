@@ -502,6 +502,13 @@ def create_parser():
         default=False,
         help="update or create an author-to-organization mapping",
     )
+    parser.add_argument(
+        "--format",
+        action="store",
+        choices=("pdf", "svg", "png", "jpg", "gif"),
+        default="pdf",
+        help="format for images (default pdf)",
+    )
     return parser
 
 
@@ -557,7 +564,7 @@ def main():
             counts = [cur_index[part][commit] for commit, date in history]
             dates = [date for commit, date in history]
             plot(
-                "loc-in-%s-by-%s.pdf" % (part, by),
+                "loc-in-%s-by-%s.%s" % (part, by, args.format),
                 "LOC over time in %s by %s" % (part, by),
                 counts,
                 dates,
