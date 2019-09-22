@@ -3,7 +3,11 @@
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 A python package for making stacked area plots of contributions over
-time.
+time.  Plots can show contributions by authors, or by organizations.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/spack/contrib/master/data/spack-pkgs-plot.png" width=600>
+</p>
 
 ## License
 
