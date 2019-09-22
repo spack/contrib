@@ -339,7 +339,7 @@ def _build_index(history, stats):
 
         now = time.time()
         delta = now - then
-        print("    COMPLETED in %.2fs)" % delta)
+        print("    COMPLETED in %.2fs" % delta)
         then = now
 
     return stats_by_name
