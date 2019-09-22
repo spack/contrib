@@ -9,8 +9,8 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 setup(
-    name="hatchet",
-    version="0.0.3",
+    name="contrib",
+    version="0.1.0",
     description=(
         "A python package for making stacked area plots of contributions over time."
     ),
