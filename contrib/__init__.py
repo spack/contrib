@@ -16,6 +16,7 @@ import errno
 import subprocess
 import tempfile
 import shutil
+import time
 import multiprocessing
 
 import dateutil.parser
@@ -31,7 +32,8 @@ blame_pool = None
 
 # Location to cache per-commit stats in
 cache_dir = "line-data"
-
+parts_dir = "line-data/parts"
+blame_dir = "line-data/blame"
 
 # Compile all regexes in stats
 # stats = {k: [[re.compile(s) for s in l] for l in v]
@@ -50,6 +52,9 @@ text_line = re.compile(r"^\t(.*)$")
 
 #: global for location of repo
 git_repo_dir = None
+
+#: global for verbosity
+verbose = False
 
 
 def die(message):
@@ -79,6 +84,9 @@ def git(*args, split=True):
     cmd = ["git"]
     cmd.extend(args)
 
+    if verbose:
+        print("    " + git_repo_dir + ": " + " ".join(cmd))
+
     with working_dir(git_repo_dir):
         output = subprocess.check_output(cmd)
         output = output.decode("utf-8")
@@ -88,8 +96,37 @@ def git(*args, split=True):
 
 
 def git_blame_file(args):
-    commit, f = args
-    return git("blame", "-w", "--line-porcelain", commit, "--", f, split=False)
+    commit, filename, cache_file = args
+
+    if os.path.exists(cache_file):
+        with open(cache_file, "r") as f:
+            return f.read()
+
+    parent = os.path.dirname(cache_file)
+    mkdirp(parent)
+
+    tmp_file = cache_file + (".tmp.%d" % os.getpid())
+
+    cmd = ["blame", "-w", "-M", "-C", "--line-porcelain", commit, "--", filename]
+
+    blame_output = git(
+        "blame",
+        "-w",
+        "-M",
+        "-C",
+        "--line-porcelain",
+        commit,
+        "--",
+        filename,
+        split=False,
+    )
+
+    with open(tmp_file, "w") as stream:
+        stream.write(blame_output)
+        stream.flush()
+    os.rename(tmp_file, cache_file)
+
+    return blame_output
 
 
 def files_for_commit(commit, places):
@@ -117,22 +154,44 @@ def iter_blame(output):
             yield (commit, author, match.group(1))
 
 
-def git_blame(commit, places):
+def git_blame(commit, places, name):
     """Get blame statsistics for all files in a place list."""
-    global blame_pool
-
     files = files_for_commit(commit, places)
 
-    if blame_pool is None:
-        blame_pool = multiprocessing.Pool(blame_jobs)
+    arguments = [
+        (commit, filename, os.path.join(blame_dir, filename, "%s.txt" % commit))
+        for filename in files
+    ]
+    nblames = len(arguments)
+
+    outputs = blame_pool.imap_unordered(git_blame_file, arguments)
     blame = {}
-    for output in blame_pool.imap_unordered(
-        git_blame_file, [(commit, f) for f in files]
-    ):
+
+    start = time.time()
+    times = []
+    for i, output in enumerate(outputs):
+        now = time.time()
+        times.append(now)
+
+        est = times[-30:]
+        est_start = est[0] if len(est) > 1 else start
+        rate = len(est) / (now - est_start)
+
+        if not verbose:
+            # write summary here (verbose prints out all git commands)
+            sys.stdout.write(
+                "\r    %s: processed %d/%d blames (%.2f/s)     "
+                % (name, i + 1, nblames, rate)
+            )
+            sys.stdout.flush()
+
         for _, author, line in iter_blame(output):
             if not any(ig.search(line) for ig in ignore):
                 blame.setdefault(author, 0)
                 blame[author] += 1
+    if not verbose:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
     return blame
 
 
@@ -140,9 +199,10 @@ class AuthorStats(object):
     """Cache of line stats by commit."""
 
     def __init__(self, name, places):
+        self.name = name
         self.commits = {}
         self.places = places
-        self.cache = os.path.join(cache_dir, name)
+        self.cache = os.path.join(parts_dir, name)
         if not os.path.isdir(self.cache):
             mkdirp(self.cache)
 
@@ -169,11 +229,11 @@ class AuthorStats(object):
                 self.commits[sha1] = stats
                 return stats
 
-        stats = git_blame(sha1, self.places)
-        temp = tempfile.NamedTemporaryFile(delete=False)
-        with temp:
+        stats = git_blame(sha1, self.places, self.name)
+        temp_name = path + ".tmp"
+        with open(temp_name, "w") as temp:
             json.dump(stats, temp, indent=True, separators=(",", ": "))
-        shutil.move(temp.name, path)
+        os.rename(temp_name, path)
 
         self.commits[sha1] = stats
         return stats
@@ -253,7 +313,7 @@ def sampled_history(ndates):
     return samples
 
 
-def build_index(history, stats, verbose=False):
+def _build_index(history, stats):
     stats_by_name = {}
     for name, places in stats.items():
         regexes = []
@@ -269,19 +329,32 @@ def build_index(history, stats, verbose=False):
     print("==> Indexing %d commits." % commits)
     print()
 
-    then = datetime.datetime.now()
+    then = time.time()
     for i, (commit, date) in enumerate(history):
-        if verbose:
-            sys.stdout.write("%5d/%d" % (i, commits), commit)
+        identifier = "%5d/%d %s" % (i, commits, commit)
+        print("STARTED   %s" % identifier)
         for gs in stats_by_name.values():
             gs[commit]
 
-        now = datetime.datetime.now()
-        if verbose:
-            print("   ", (now - then))
+        now = time.time()
+        delta = now - then
+        print("    COMPLETED in %.2fs)" % delta)
         then = now
 
     return stats_by_name
+
+
+def build_index(history, stats):
+    global blame_pool
+
+    if blame_pool is None:
+        blame_pool = multiprocessing.Pool(blame_jobs)
+
+    try:
+        _build_index(history, stats)
+    finally:
+        blame_pool.terminate()
+        blame_pool = None
 
 
 def plot(filename, title, counts, dates, top_n=20):
@@ -401,6 +474,9 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
 
+    global verbose
+    verbose = args.verbose
+
     # read config out of git root
     if not os.path.exists(args.file):
         die("no such file: '%s'" % args.file)
@@ -419,7 +495,7 @@ def main():
         history = list(sampled_history(args.samples))
 
     # build index
-    index = build_index(history, config.parts, verbose=args.verbose)
+    index = build_index(history, config.parts)
 
     # if --index, just return after building
     if args.index:
