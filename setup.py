@@ -26,6 +26,7 @@ setuptools.setup(
     keywords="",
     packages=setuptools.find_packages(),
     python_requires=">=3.6",
+    scripts=["bin/contrib"],
     install_requires=[
         "python-dateutil",
         "jsonschema",
