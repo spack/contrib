@@ -15,8 +15,6 @@ import os
 import datetime
 import errno
 import subprocess
-import tempfile
-import shutil
 import time
 import multiprocessing
 
@@ -107,9 +105,6 @@ def git_blame_file(args):
     mkdirp(parent)
 
     tmp_file = cache_file + (".tmp.%d" % os.getpid())
-
-    cmd = ["blame", "-w", "-M", "-C", "--line-porcelain", commit, "--", filename]
-
     blame_output = git(
         "blame",
         "-w",
