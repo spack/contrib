@@ -27,8 +27,8 @@ Alternately, you can clone this project, add its directory to your
 ## Usage
 
 To use `contrib`, you'll need to create a configuration file telling it
-where to find your code.  Below is an example for Spack; you can find
-complete code in the
+where to find your code.  Below is an example for Spack; you can find a
+complete example in the
 [spack-contributions](https://github.com/spack/spack-contributions) repo.
 
 
@@ -158,6 +158,17 @@ blame` calls remain and how fast blames are currently completing.
 `line-data`.  For large repositories, this can get to be quite large, so
 make sure you have a decent amount of space available (gigabytes for
 large repositories).
+
+## Related projects
+
+If you like `contrib`, you may be interested in the projects below.
+`contrib` does some very specific things we wanted for Spack; these
+systems can provide much more sophisticated metrics:
+
+* Augur (https://github.com/chaoss/augur)
+* Labours (https://pypi.org/project/labours/), purportedly much faster
+  than `git-of-theseus`
+* `git-of-theseus` (https://github.com/erikbern/git-of-theseus)
 
 ## License
 
