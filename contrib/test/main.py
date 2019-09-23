@@ -3,7 +3,10 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import collections
 import os
+import re
+
 import pytest
 
 import contrib.main as main
@@ -64,3 +67,36 @@ def test_git_blame_file(tmpdir, repo_dir):
             ("c569f5d895c44d6bf7023b7b2d8915a0e9fd17a9", "setup.py", "cache/setup.py")
         )
         assert all(line in output for line in lines)
+
+
+def test_files_for_commit(repo_dir):
+    files = main.files_for_commit(
+        "c569f5d895c44d6bf7023b7b2d8915a0e9fd17a9",
+        [re.compile(r"contrib/test/data/config/.*\.yaml"), re.compile(r"bin/.*")],
+    )
+
+    assert set(files) == set(
+        [
+            "contrib/test/data/config/contrib-no-parts.yaml",
+            "contrib/test/data/config/contrib.yaml",
+            "bin/contrib",
+        ]
+    )
+
+
+def test_iter_blame(tmpdir, repo_dir):
+    with tmpdir.as_cwd():
+        output = main.git_blame_file(
+            (
+                "c7e96950440a3d3f7ac2b13d0a8da0239c1debe3",
+                "contrib/test/data/config/author-to-org.json",
+                "cache/cache.txt",
+            )
+        )
+
+    counts = collections.defaultdict(lambda: 0)
+    for triple in main.iter_blame(output):
+        _, name, _ = triple
+        counts[name] += 1
+
+    assert counts == {"Todd Gamblin": 339, "Adam J. Stewart": 1}
