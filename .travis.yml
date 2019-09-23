@@ -12,7 +12,8 @@ jobs:
       script:
         - black --diff --check .
         - flake8
-    - python: '3.5'
+    - stage: "unit tests"
+      python: '3.5'
       os: linux
       language: python
     - python: '3.6'
