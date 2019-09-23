@@ -5,7 +5,8 @@ parallel = True
 branch = True
 source = .
 omit =
-     contrib/tests/*
+     contrib/test/*
+     setup.py
 
 [report]
 # Regexes for lines to exclude from consideration

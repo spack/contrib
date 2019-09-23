@@ -43,6 +43,6 @@ after_success:
 
 notifications:
   email:
-    recipients: bhatele@llnl.gov
+    recipients: tgamblin@llnl.gov
     on_success: change
     on_failure: always
