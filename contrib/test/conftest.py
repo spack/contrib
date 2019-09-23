@@ -8,6 +8,8 @@ import os
 import py
 import pytest
 
+import contrib.main as main
+
 
 @pytest.fixture
 def data_dir():
@@ -22,3 +24,11 @@ def config_dir(tmpdir, data_dir, request):
     for f in config.listdir():
         f.copy(tmpdir)
     yield tmpdir
+
+
+@pytest.fixture(autouse=True)
+def repo_dir():
+    old_repo_dir = main.git_repo_dir
+    main.git_repo_dir = os.getcwd()
+    yield
+    main.git_repo_dir = old_repo_dir
