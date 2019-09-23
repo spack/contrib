@@ -17,7 +17,7 @@ organizations.
 `contrib` is on PyPI, so you can just `pip install` it:
 
 ```console
-pip install contrib
+$ pip install contrib
 ```
 
 Alternately, you can clone this project, add its directory to your
