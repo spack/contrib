@@ -12,6 +12,17 @@ organizations.
   <img src="https://raw.githubusercontent.com/spack/contrib/master/data/spack-pkgs-plot.png" width=600>
 </p>
 
+## Installation
+
+`contrib` is on PyPI, so you can just `pip install` it:
+
+```console
+pip install contrib
+```
+
+Alternately, you can clone this project, add its directory to your
+`PYTHONPATH`, and add the `bin` directory to your `PATH`.
+
 ## Usage
 
 To use `contrib`, you'll need to create a configuration file telling it
