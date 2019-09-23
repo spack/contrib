@@ -17,7 +17,12 @@ def test_read_config(config_dir):
     config_dir = os.path.normpath(os.path.dirname(str(config_file)))
     assert config.repo == os.path.normpath(os.path.join(config_dir, "./spack"))
 
-    assert config.orgmap == os.path.normpath(
+    assert config.orgmap == {
+        "Author 1": "Org 1",
+        "Author 2": "Org 2",
+        "Author 3": "Org 3",
+    }
+    assert config.orgmap_file == os.path.normpath(
         os.path.join(config_dir, "author-to-org.json")
     )
     assert config.parts == {
