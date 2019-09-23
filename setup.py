@@ -1,7 +1,7 @@
-# Copyright 2017-2019 Lawrence Livermore National Security, LLC and other
-# Hatchet Project Developers. See the top-level LICENSE file for details.
+# Copyright 2013-2019 Lawrence Livermore National Security, LLC and other
+# Spack Project Developers. See the top-level LICENSE file for details.
 #
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 import setuptools
 from os import path
