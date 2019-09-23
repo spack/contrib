@@ -9,7 +9,7 @@
 
 # clean up the stuff that setup.py won't.
 dist:
-	python3 setup.py
+	python3 setup.py sdist bdist_wheel
 
 # upload distfiles to PyPI
 upload: dist
@@ -18,3 +18,4 @@ upload: dist
 # clean up the stuff that setup.py won't.
 clean:
 	rm -rf *.egg-info dist build
+	rm -rf $(find . -name __pycache__ -o -name "*.pyc")
