@@ -30,6 +30,9 @@ where to find your code.  Below is an example for Spack; you can find
 complete code in the
 [spack-contributions](https://github.com/spack/spack-contributions) repo.
 
+
+Here's an example `contrib.yaml`:
+
 ```yaml
 contrib:
   # Path to your git repository. to run git blame on.
@@ -40,10 +43,11 @@ contrib:
   orgmap: ./author-to-org.json
 
   # Separate parts of the repository to process (optional).  For each
-  # commit, Spack looks for files that match the patterns in each part.
-  # For a simple repo, you may only need one regular expression per part.
-  # In Spack, the packages have moved around in the repo over time so we
-  # provide multiple patterns.
+  # commit, contrib will look for files that match the patterns in each
+  # part.  For a simple repo, you may only need one regular expression
+  # per part.  In Spack, the packages have moved around in the repo over
+  # time, so we provide multiple patterns.  Contrib will use the first
+  # pattern matched by any file in each commit.
   parts:
     packages:
       - ^var/spack/repos/builtin/packages/.*\.py$
@@ -51,11 +55,28 @@ contrib:
       - ^lib/spack/spack/packages/.*\.py$
 ```
 
-The `repo` needs to be in your local filesystem.
+The `repo` needs to be in your local filesystem, preferably in the same
+directory as `contrib.yaml`.  `orgmap` is optional (see below for how to
+generate it).  `parts` is also optional; if you do not specify it, there
+will be one part called `all` that matches everything:
+
+```yaml
+    parts:
+      all:
+        - ^.*$
+```
+
+You can name your parts anything; see the example above for how to model
+a repository where different logical parts have moved around in
+subdirectories.
+
 
 ### Mapping authors to organizations
-`author-to-org.json` is optional.  If you choose to provide it, it should
-be simple `json` dictionary mapping authors to organizations:
+
+
+The `orgmap` (`author-to-org.json` in the example above) is optional.  If
+you choose to provide it, it should be simple `json` dictionary mapping
+authors to organizations:
 
 ```json
 {
@@ -66,8 +87,40 @@ be simple `json` dictionary mapping authors to organizations:
 }
 ```
 
-You can run `contrib --update-org-map` to look at your repository's
-history and generate this file automatically.
+You can run `contrib --update-org-map` to generate an `orgmap` to start
+with.  `contrib` will look at your repository's history and generate the
+file automatically:
+
+```console
+$ contrib --update-org-map
+==> Added 503 new authors to 'author-to-org.json'
+==> New orgmap file created in 'author-to-org.json'.
+==> Add it to './contrib.yaml' like this:
+
+    contrib:
+        orgmap: author-to-org.json
+
+```
+
+If you then add this file to your `contrib.yaml`, you can update it later
+as your repository evolves:
+
+```console
+$ contrib --update-org-map
+==> Added 10 new authors to 'author-to-org.json'
+```
+
+Newly added authors will be labeled as `unknown <email from git>` in the
+`json` file:
+
+```json
+  "Author 1": "unknown <foo@bar.com>",
+  "Author 2": "unknown <444532+someusername@users.noreply.github.com>",
+  "Author 3": "unknown <user@example.com>",
+```
+
+You can replace these with valid organizations, or just leave them and
+they'll show up as "unknown" in the `contrib`  plots.
 
 ### Running
 
@@ -93,10 +146,10 @@ run, and by default it will run parallel `git blame` jobs.  You can
 control the parallelism with the `--jobs JOBS` argument.
 
 `contrib` has to run `git blame` for each sampled commit and for each
-file in the `parts` section of your `contrib.yaml` file (or for all files
-if `parts` is not provided), so it can take a long time to run if your
-repo's history is long.  `contrib`'s output shows how many `git blame`
-calls remain and how fast blames are currently completing.
+file matched by the `parts` section of your `contrib.yaml` file (or for
+all files if `parts` is not provided), so it can take a long time to run
+if your repo's history is long.  `contrib`'s output shows how many `git
+blame` calls remain and how fast blames are currently completing.
 
 ### Cached data
 

@@ -80,15 +80,17 @@ class ContribConfig(object):
         config_dir = os.path.dirname(path)
         self.repo = os.path.normpath(os.path.join(config_dir, data["repo"]))
 
-        self.orgmap = None
+        self.orgmap = {}
+        self.orgmap_file = None
+
+        # load orgmap if present
         orgmap_file = data.get("orgmap")
         if orgmap_file:
             orgmap_file = os.path.normpath(os.path.join(config_dir, orgmap_file))
-            if not os.path.exists(orgmap_file):
-                raise IOError("No such file or directory: '%s'" % orgmap_file)
-            with open(orgmap_file) as f:
-                self.orgmap = json.load(f)
-                self.orgmap_file = orgmap_file
+            if os.path.exists(orgmap_file):
+                with open(orgmap_file) as f:
+                    self.orgmap = json.load(f)
+            self.orgmap_file = orgmap_file
             jsonschema.validate(orgmap_schema, self.orgmap)
 
-        self.parts = data.get("parts", {"all": r"^.*\.py$"})
+        self.parts = data.get("parts", {"all": [r"^.*$"]})

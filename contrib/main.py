@@ -411,10 +411,7 @@ def plot(filename, title, counts, dates, top_n=20):
     plt.savefig(filename)
 
 
-def update_org_map(filename):
-    with open(filename) as f:
-        authors_to_orgs = json.load(f)
-
+def update_org_map(filename, authors_to_orgs):
     lines = git("log", "--no-merges", "--pretty=format:%aN|%ae")
 
     new_authors = 0
@@ -432,9 +429,9 @@ def update_org_map(filename):
             temp.write("\n")  # add back trailing newline
         os.rename(temp_name, filename)
 
-        print("Added %d new authors to '%s'" % (new_authors, filename))
+        print("==> Added %d new authors to '%s'" % (new_authors, filename))
     else:
-        print("No new authors.")
+        print("==> No new authors.")
 
 
 def create_parser():
@@ -518,14 +515,25 @@ def main():
     blame_jobs = args.jobs
     git_repo_dir = config.repo
 
-    if not os.path.isdir(os.path.join(config.repo, ".git")):
+    if not os.path.exists(os.path.join(config.repo, ".git")):
         die("not a git repo: '%s'" % config.repo)
 
     # update mapping from authors to orgs
     if args.update_org_map:
-        if not config.orgmap:
-            die("%s doesn't specify an orgmap" % args.file)
-        update_org_map(config.orgmap_file)
+        filename = config.orgmap_file
+        if not filename:
+            filename = "author-to-org.json"
+
+        update_org_map(filename, config.orgmap)
+
+        if not config.orgmap_file:
+            print("==> New orgmap file created in '%s'." % filename)
+            print("==> Add it to '%s' like this:" % args.file)
+            print()
+            print("    contrib:")
+            print("        orgmap: %s" % filename)
+            print()
+
         return
 
     # get the list of commits we're going to plot
@@ -546,6 +554,9 @@ def main():
         for by in ["author", "org"]:
             cur_index = index
             if by == "org":
+                if not config.orgmap:
+                    print("==> No orgmap specified. Skipping.")
+                    continue
                 cur_index = {
                     name: OrgStats(s, config.orgmap) for name, s in index.items()
                 }

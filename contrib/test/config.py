@@ -39,5 +39,5 @@ def test_read_config_no_parts(config_dir):
     config_dir = os.path.normpath(os.path.dirname(str(config_file)))
     assert config.repo == os.path.normpath(os.path.join(config_dir, "./spack"))
 
-    assert config.orgmap is None
-    assert config.parts == {"all": r"^.*\.py$"}
+    assert not config.orgmap
+    assert config.parts == {"all": [r"^.*$"]}
