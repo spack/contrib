@@ -12,10 +12,6 @@ jobs:
       script:
         - black --diff --check .
         - flake8
-    - stage: "unit tests"
-      python: '2.7'
-      os: linux
-      language: python
     - python: '3.5'
       os: linux
       language: python
@@ -25,10 +21,12 @@ jobs:
     - python: '3.7'
       os: linux
       language: python
+    - python: '3.8-dev'
+      os: linux
+      language: python
 
 install:
   - pip install --upgrade -r requirements.txt
-  - pip install --upgrade pytest
   - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then
         pip install --upgrade black;
         pip install --upgrade flake8;

@@ -3,3 +3,5 @@ jsonschema
 matplotlib
 pyyaml
 setuptools
+pytest
+codecov
