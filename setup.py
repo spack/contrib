@@ -12,7 +12,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="contrib",
-    version="0.1.0",
+    version="0.2.0",
     author="Todd Gamblin",
     author_email="tgamblin@llnl.gov",
     description=(
