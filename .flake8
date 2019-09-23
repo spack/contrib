@@ -1,5 +1,5 @@
 # -*- conf -*-
-# flake8 settings for hatchet
+# flake8 settings for contrib
 #
 # These are the flake8 settings recommended by Black
 # See https://github.com/psf/black

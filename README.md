@@ -1,5 +1,7 @@
 # Contrib
 
+[![Build Status](https://travis-ci.com/spack/contrib.svg?branch=master)](https://travis-ci.com/spack/contrib)
+[![codecov](https://codecov.io/gh/spack/contrib/branch/master/graph/badge.svg)](https://codecov.io/gh/spack/contrib)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 A python package for making stacked area plots of contributions to a git
