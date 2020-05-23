@@ -1,0 +1,20 @@
+contrib:
+  # Path to your git repository. to run git blame on.
+  # Consider making this a git submodule. For the GitHub action, if this
+  # path doesn't exist you can define the GitHub clone url as "repo"
+  repo:   ./spack
+
+  # JSON file mapping authors to organizations (optional)
+  # If you add this here, make sure to set the action "authors" to true
+  orgmap: ./author-to-org.json
+
+  # Separate parts of the repository to process (optional).  For each
+  # commit, contrib will look for files that match the patterns in each
+  # part.  For a simple repo, you may only need one regular expression
+  # per part.  In Spack, the packages have moved around in the repo over
+  # time, so we provide multiple patterns.  Contrib will use the first
+  # pattern matched by any file in each commit. Note that we are only
+  # parsing files that start with s to make it faster for the example.
+  parts:
+    packages:
+      - ^var/spack/repos/builtin/packages/s.*\.py$
