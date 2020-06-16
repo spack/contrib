@@ -1,0 +1,53 @@
+name: 'Contributions over Time'
+description: 'A GitHub action to make a stacked area plot of contributions over time.'
+author: 'spack'
+branding:
+  icon: 'bar-chart'  
+  color: 'blue'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    GITHUB_TOKEN: ${{ inputs.token }}
+inputs:
+  workdir:
+    description: >
+      the working directory to run the clone and contrib generation. It should.
+      contain the contrib.yaml, and the path to any repo or authors file should
+      be relative to it.
+    default: null
+  repo:
+    description: >
+      repository clone address, if doesn't exist. This should coincide with 
+      path in your contrib.yaml.
+    default: null
+  file:
+    description: path to valid contrib.yaml (default './contrib.yaml')
+    default: contrib.yaml
+  samples:
+    description: >
+      The number of commit samples that contrib makes. Set to 0 for 
+      all commits. Defaults to 2, and cannot be 1.
+    default: 1
+  authors:
+    description: >
+      authors mapping file (not required). If you set this to a value here,
+      we will assume the contrib.yaml has the corresponding filename.
+    default: null
+  topn:
+    description: number of contributors to show before collapsing into 'other'
+    default: null
+  format:
+    description: format for images {pdf,svg,png,jpg,gif} (default png)
+    default: png
+  verbose:
+    description: run in verbose mode (unset will not be verbose)
+    default: null
+  token:
+    description: >
+      Auth token used to fetch the repository.
+    default: ${{ github.token }}
+
+outputs:
+  plot:
+    description: 'The generated plot png file.'

@@ -1,0 +1,58 @@
+name: generate-contrib-graphic
+
+on:
+  pull_request: []
+
+jobs:
+  contrib:
+    name: Generate Contribution Graphic
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Run GitHub Action
+        uses: ./
+        env:
+          token: ${{ secrets.GITHUB_TOKEN }}
+        with:
+ 
+          # A url to clone, if contrib.yaml "repo" doesn't exist in the repository
+          repo: https://github.com/spack/spack
+
+          # number of commit samples, set to 0 for all commits, cannot be 1
+          samples: 2
+
+          # Working directory to do the clone, and expect contrib and authors files
+          workdir: examples
+
+          # The contrib.yaml flie with configuration
+          file: contrib.yaml
+
+          # Authors should be set in the file (contrib.yaml)
+          authors: true
+
+          # number of contributions to show before collapse into "other"
+          topn: 10
+
+          # format of file to save (pdf, svg, png, jpg, gif)
+          format: pdf
+
+          # Print verbose output
+          verbose: true
+
+        # It's  up to you what to do with the result! You can save, open PR, or push somewhere
+      - name: Upload graphic as artifact
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: plot
+          path: examples/*.pdf
+
+
+      - name: Cache Working Directory Line Data
+        id: cache-line-data
+        uses: actions/cache@v1
+
+        # Ensure this path coincides with your working directory
+        with:
+          path: examples/line-data
+          key: ${{ runner.os }}-line-data
