@@ -15,6 +15,7 @@ import os
 import datetime
 import errno
 import subprocess
+import string
 import time
 import multiprocessing
 
@@ -34,20 +35,9 @@ cache_dir = "line-data"
 parts_dir = "line-data/parts"
 blame_dir = "line-data/blame"
 
-# Compile all regexes in stats
-# stats = {k: [[re.compile(s) for s in l] for l in v]
-#         for k, v in stats.items()}
-
 # Patterns to ignore
 ignore = [r"^\s*\#", r"^\s*$"]  # comments  # blank lines
 ignore = [re.compile(s) for s in ignore]
-
-
-# regular expressions for parsing `git blame --line-porcelain` output
-commit_line = re.compile(r"^([0-9a-f]{40})")
-author_line = re.compile(r"^author (.*)$")
-text_line = re.compile(r"^\t(.*)$")
-
 
 #: global for location of repo
 git_repo_dir = None
@@ -121,7 +111,6 @@ def git_blame_file(args):
         stream.write(blame_output)
         stream.flush()
     os.rename(tmp_file, cache_file)
-
     return blame_output
 
 
@@ -135,19 +124,20 @@ def files_for_commit(commit, places):
 
 
 def iter_blame(output):
+    """Parses ``git blame --line-porcelain`` output."""
     commit = author = None
     for line in output.strip().split("\n"):
-        match = commit_line.search(line)
-        if match:
-            commit = match.group(1)
+        if line.startswith("author "):
+            author = line[7:]
 
-        match = author_line.search(line)
-        if match:
-            author = match.group(1)
+        elif line.startswith("\t"):
+            text = line[1:]
+            yield (commit, author, text)
 
-        match = text_line.search(line)
-        if match:
-            yield (commit, author, match.group(1))
+        else:
+            prefix = line[:40]
+            if " " not in prefix and all(c in string.hexdigits for c in prefix):
+                commit = prefix
 
 
 def git_blame(commit, places, name):
@@ -311,18 +301,24 @@ def _build_index(history, stats):
             regexes.append(re.compile(regex))
         stats_by_name[name] = AuthorStats(name, regexes)
 
-    commits = 0
+    todo = set()
     for commit, date in history:
         if any(commit not in gs for gs in stats_by_name.values()):
-            commits += 1
+            todo.add(commit)
 
-    print("==> Indexing %d commits." % commits)
-    print()
+    total = len(history)
+    remaining = len(todo)
+    completed = total - remaining
+
+    print("==> %d commits already complete." % completed)
+    print("==> %d commits remaining to index." % remaining)
 
     then = time.time()
     for i, (commit, date) in enumerate(history):
-        identifier = "%5d/%d %s" % (i, commits, commit)
-        print("STARTED   %s" % identifier)
+        if commit not in todo:
+            continue
+
+        print("STARTED %5d/%d %s" % (i + 1, len(history), commit))
         for gs in stats_by_name.values():
             gs[commit]
 
@@ -361,6 +357,7 @@ def plot(filename, title, counts, dates, top_n=20):
     The stacked plots will explicitly show data for the top N
     contributors.  N defaults to 20.
     """
+    print("==> Creating plot: %s" % filename)
     # Sort data ascending by date.
     sorted_list = sorted(zip(dates, counts))
     dates, counts = zip(*sorted_list)
@@ -395,7 +392,7 @@ def plot(filename, title, counts, dates, top_n=20):
     colors = colors[::3] + colors[1::3] + colors[2::3]
 
     plt.figure(figsize=(8, 4), dpi=320)
-    plt.title(title)
+    plt.title(title, fontname="Arial")
 
     # Do the plot
     plt.stackplot(dates, series, labels=labels, lw=0, colors=colors)
@@ -551,9 +548,9 @@ def main():
 
     # now do plots by author and by organization
     for part in config.parts:
-        for by in ["author", "org"]:
+        for by in ["author", "organization"]:
             cur_index = index
-            if by == "org":
+            if by == "organization":
                 if not config.orgmap:
                     print("==> No orgmap specified. Skipping.")
                     continue
@@ -565,7 +562,7 @@ def main():
             dates = [date for commit, date in history]
             plot(
                 "loc-in-%s-by-%s.%s" % (part, by, args.format),
-                "LOC over time in %s by %s" % (part, by),
+                "Contributions (lines of code) over time in %s, by %s" % (part, by),
                 counts,
                 dates,
                 args.topn,
