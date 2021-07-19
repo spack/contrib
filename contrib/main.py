@@ -6,8 +6,10 @@
 from __future__ import division
 
 import argparse
+import bisect
 import collections
 import contextlib
+import glob
 import json
 import sys
 import re
@@ -482,6 +484,13 @@ def create_parser():
         help="number of commits to sample for the chart (0 for all commits)",
     )
     parser.add_argument(
+        "--fuzz",
+        action="store",
+        type=int,
+        default=10,
+        help="find already-blamed commits within X percent of samples (default 10%)",
+    )
+    parser.add_argument(
         "-j",
         "--jobs",
         action="store",
@@ -517,6 +526,71 @@ def merge(count_dict, merge_list):
                 del count_dict[user]
         if present:
             count_dict[user_list[0]] = total
+
+
+def fuzz_history(history, fuzz, parts):
+    """Find commits that are close to the ones we sampled, so that we do not have to
+    compute blame if we have something nearby."""
+    # usually all parts have same cached commits -- just assume that here. Worst that
+    # happens is we have to blame more if the commit exists in multiple sections
+    part = list(parts)[0]
+    parts_cache = os.path.join(parts_dir, part)
+
+    cached = []
+    for filename in os.listdir(parts_cache):
+        match = re.match(r"([0-9a-f]{40})\.json", filename)
+        if match:
+            commit = match.group(1)
+            date = git("show", "-s", "--format=%ci", commit)[0].strip()
+            cached.append((commit, dateutil.parser.parse(date)))
+
+    # sort by date
+    cached.sort(key=lambda x: x[1])
+
+    # lists of just the cached commits and cached dates
+    commits, dates = zip(*cached)
+
+    # average time bt/w two samples
+    total = dates[1] - dates[0]
+    for i in range(1, len(dates) - 1):
+        total += dates[i + 1] - dates[i]
+    avg_window = total / (len(dates) - 1)
+    print(avg_window)
+    acceptable = fuzz / 100.0 * avg_window
+
+    fuzzed = []
+    for h, (commit, date) in enumerate(history):
+        hi = bisect.bisect_left(dates, date)
+        lo = hi - 1
+
+        lo_delta = None
+        if lo > 0 and lo < len(cached):
+            if commits[lo] == commit:
+                fuzzed.append((commit, date))
+                continue
+            lo_delta = date - dates[lo]
+
+        hi_delta = None
+        if hi > 0 and hi < len(cached):
+            hi_delta = dates[hi] - date
+
+        if not lo_delta and not hi_delta:
+            fuzzed.append((commit, date))
+            continue
+
+        if not lo_delta:
+            delta, i = hi_delta, hi
+        elif not hi_delta:
+            delta, i = lo_delta, lo
+        else:
+            delta, i = min(((hi_delta, hi), (lo_delta, lo)))
+
+        if delta <= acceptable:
+            fuzzed.append((commits[i], dates[i]))
+        else:
+            fuzzed.append((commit, date))
+
+    return fuzzed
 
 
 def main():
@@ -562,6 +636,8 @@ def main():
         history = list(linear_history())
     else:
         history = list(sampled_history(args.samples))
+        if args.fuzz:
+            history = fuzz_history(history, args.fuzz, config.parts)
 
     # build index
     index = build_index(history, config.parts)
