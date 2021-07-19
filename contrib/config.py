@@ -47,6 +47,10 @@ contrib_yaml_schema = {
                         }
                     },
                 },
+                "merge": {
+                    "type": "array",
+                    "description": "list of lists of users to merge",
+                },
             },
             "required": ["repo", "commit"],
         }
@@ -94,3 +98,5 @@ class ContribConfig(object):
             jsonschema.validate(orgmap_schema, self.orgmap)
 
         self.parts = data.get("parts", {"all": [r"^.*$"]})
+
+        self.merge = data.get("merge", [])

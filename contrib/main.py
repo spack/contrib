@@ -246,7 +246,7 @@ class OrgStats(object):
 
 def linear_history(length=sys.maxsize):
     """Yield tuples of (commit, date) on the current branch, from newest to
-       oldest.  Date used is commit date, because it is monotonic."""
+    oldest.  Date used is commit date, because it is monotonic."""
     output = git("log", "--first-parent", "--no-merges", "--format=%H %cI")
     for i, line in enumerate(output):
         if i >= length:
@@ -257,9 +257,12 @@ def linear_history(length=sys.maxsize):
 
 def sampled_history(ndates):
     """Yield tuples of (commit, date) on the current branch, from newest to
-       oldest.
+    oldest.
 
-       Samples the date range from today to oldest evenly."""
+    Samples the date range from first commit to today evenly, but
+    always includes the latest commit.
+
+    """
     commits = []
 
     output = git("log", "--first-parent", "--no-merges", "--format=%H %cI")
@@ -276,11 +279,11 @@ def sampled_history(ndates):
     dt = datetime.timedelta(seconds=dt_s)
 
     samples = []
-    c = iter(commits)
+    c = iter(reversed(commits))
     commit, date = next(c)
     try:
         for i in range(ndates):
-            while date > end - (i * dt):
+            while date < start + (i * dt):
                 commit, date = next(c)
             if not samples or commit != samples[-1][0]:
                 samples.append((commit, date))
@@ -290,7 +293,7 @@ def sampled_history(ndates):
     if commit != samples[-1][0]:
         samples.append((commit, date))
 
-    return samples
+    return list(reversed(samples))
 
 
 def _build_index(history, stats):
@@ -364,6 +367,14 @@ def plot(filename, title, counts, dates, top_n=20):
 
     # Get sorted lists of top contributors (by line) from the last commit.
     contributors = sorted(counts[-1].keys(), key=lambda c: counts[-1][c])
+    with open(filename + ".json", "w") as all_counts:
+        json.dump(
+            [(c, counts[-1][c]) for c in reversed(contributors)],
+            all_counts,
+            indent=2,
+            separators=(",", ": "),
+        )
+
     top_contributors = contributors[-top_n:]
     labels = top_contributors
 
@@ -495,6 +506,19 @@ def create_parser():
     return parser
 
 
+def merge(count_dict, merge_list):
+    for user_list in merge_list:
+        total = 0
+        present = False
+        for user in user_list:
+            if user in count_dict:
+                present = True
+                total += count_dict[user]
+                del count_dict[user]
+        if present:
+            count_dict[user_list[0]] = total
+
+
 def main():
     global verbose
     global blame_jobs
@@ -559,6 +583,9 @@ def main():
                 }
 
             counts = [cur_index[part][commit] for commit, date in history]
+            for count_dict in counts:
+                merge(count_dict, config.merge)
+
             dates = [date for commit, date in history]
             plot(
                 "loc-in-%s-by-%s.%s" % (part, by, args.format),
