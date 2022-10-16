@@ -97,17 +97,27 @@ def git_blame_file(args):
     mkdirp(parent)
 
     tmp_file = cache_file + (".tmp.%d" % os.getpid())
-    blame_output = git(
+    blame_cmd = [
         "blame",
         "-w",
         "-M",
         "-C",
         "--line-porcelain",
+    ]
+
+    ignore_revs_file = os.path.abspath(
+        os.path.join(git_repo_dir, ".git-blame-ignore-revs")
+    )
+    if os.path.exists(ignore_revs_file):
+        blame_cmd += ["--ignore-revs-file", ignore_revs_file]
+
+    blame_cmd += [
         commit,
         "--",
         filename,
-        split=False,
-    )
+    ]
+
+    blame_output = git(*blame_cmd, split=False)
 
     with open(tmp_file, "w") as stream:
         stream.write(blame_output)
@@ -378,6 +388,10 @@ def plot(filename, title, counts, dates, top_n=20):
         )
 
     top_contributors = contributors[-top_n:]
+    if "unknown" in top_contributors:
+        top_contributors = contributors[-top_n - 1 :]
+        top_contributors.remove("unknown")
+
     labels = top_contributors
 
     # List of series, one for each top contributor. Each element is a
@@ -488,7 +502,7 @@ def create_parser():
         action="store",
         type=int,
         default=10,
-        help="find already-blamed commits within X percent of samples (default 10%)",
+        help="find already-blamed commits within X percent of samples (default 10%%)",
     )
     parser.add_argument(
         "-j",
@@ -598,6 +612,8 @@ def main():
     global blame_jobs
     global git_repo_dir
 
+    multiprocessing.set_start_method("fork")
+
     parser = create_parser()
     args = parser.parse_args()
 
@@ -663,6 +679,7 @@ def main():
                 merge(count_dict, config.merge)
 
             dates = [date for commit, date in history]
+
             plot(
                 "loc-in-%s-by-%s.%s" % (part, by, args.format),
                 "Contributions (lines of code) over time in %s, by %s" % (part, by),
