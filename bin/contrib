@@ -5,6 +5,13 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-import contrib.main
+
+try:
+    import contrib.main
+except ImportError:
+    import os, sys
+    path = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
+    sys.path.insert(0, path)
+    import contrib.main
 
 contrib.main.main()
