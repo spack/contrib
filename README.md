@@ -20,7 +20,6 @@ organizations.
  - [License](#license) information.
 
 ## Installation
-
 `contrib` is on PyPI, so you can just `pip install` it:
 
 ```console
