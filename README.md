@@ -1,8 +1,8 @@
 # Contrib
 
 [![PyPI version](https://badge.fury.io/py/contrib.svg)](https://badge.fury.io/py/contrib)
-[![Build Status](https://travis-ci.com/spack/contrib.svg?branch=master)](https://travis-ci.com/spack/contrib)
-[![codecov](https://codecov.io/gh/spack/contrib/branch/master/graph/badge.svg)](https://codecov.io/gh/spack/contrib)
+[![tests](https://github.com/spack/contrib/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/spack/contrib/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/spack/contrib/branch/main/graph/badge.svg)](https://codecov.io/gh/spack/contrib)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 A python package for making stacked area plots of contributions to a git
