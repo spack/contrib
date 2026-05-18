@@ -9,7 +9,6 @@ import argparse
 import bisect
 import collections
 import contextlib
-import glob
 import json
 import sys
 import re
